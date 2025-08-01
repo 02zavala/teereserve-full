@@ -555,11 +555,3 @@ TeeReserve es una plataforma robusta y completa que está lista para el lanzamie
 
 *Documentación generada en Julio 2025 - Versión 2.0*
 
-# teereserve-produccion
-# teereserve-produccion
-# teerserve-final
-# teerserve-final
-# teereserve-1
-# teereserve-completo
-# teereserve-completo
-# teereserve-completo

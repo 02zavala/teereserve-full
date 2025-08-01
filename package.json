@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate --no-engine && next build",
+    "build": "next build",
     "postinstall": "prisma generate --no-engine",
     "start": "next start",
     "lint": "next lint",

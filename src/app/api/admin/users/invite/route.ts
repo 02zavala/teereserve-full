@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client';
 import { withRolePermission } from '@/middleware/role-validation';
 import bcrypt from 'bcryptjs';
 import { getTenantId } from '@/lib/prisma-tenant';
-import { auth } from '@/auth'; // Importar auth aquí
+import { auth } from '@/lib/auth';
 
 const prisma = new PrismaClient();
 

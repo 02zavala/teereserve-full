@@ -1,0 +1,590 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Tenant {
+  id              String            @id @default(uuid())
+  name            String            @unique
+  slug            String            @unique
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  users           User[]
+  golfCourses     GolfCourse[]
+  bookings        Booking[]
+  reservations    Reservation[]
+  affiliates      Affiliate[]
+  commissions     Commission[]
+  discountCodes   DiscountCode[]
+  reviews         Review[]
+  availabilities  Availability[]
+  onboardingRequests OnboardingRequest[]
+  paymentMethods  PaymentMethod[]
+  notificationTemplates NotificationTemplate[]
+  notifications   Notification[]
+  notificationPreferences NotificationPreference[]
+  analyticsEvents AnalyticsEvent[]
+  reports         Report[]
+  reportExecutions ReportExecution[]
+  subscription    Subscription?
+  invoices        Invoice[]
+  chatConversations ChatConversation[]
+  emailCampaigns  EmailCampaign[]
+  loyaltyProgram  LoyaltyProgram?
+}
+
+// User and Role Management
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  name          String?
+  password      String
+  phone         String?
+  roleId        String
+  role          Role      @relation(fields: [roleId], references: [id])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  bookings      Booking[]
+  reviews       Review[]
+  affiliate     Affiliate?
+  paymentMethods PaymentMethod[]
+  notificationPreferences NotificationPreference[]
+  loyaltyTransactions LoyaltyTransaction[]
+  loyaltyRedemptions LoyaltyRedemption[]
+  tenantId      String?
+  tenant        Tenant?   @relation(fields: [tenantId], references: [id])
+}
+
+model Role {
+  id            String    @id @default(uuid())
+  name          String    @unique // e.g., 'Client', 'GolfCourse', 'Promoter', 'SuperAdmin'
+  description   String?
+  users         User[]
+}
+
+// Golf Course Management
+model GolfCourse {
+  id            String      @id @default(uuid())
+  name          String
+  slug          String    @unique
+  location      String
+  description   String?
+  holes         Int
+  rating        Float?
+  priceWeekday  Float?
+  priceWeekend  Float?
+  teeSheetUrl   String? // URL para la hoja de tee externa
+  currency      String? @default("USD") // Moneda para los precios
+  isActive      Boolean @default(true) // Para activar/desactivar campos
+  features      String? // String para características (ej: "Driving Range, Pro Shop")
+  difficulty    String? // Nivel de dificultad (ej: "Principiante", "Intermedio", "Avanzado")
+  contactEmail  String?
+  contactPhone  String?
+  imageUrl      String?     // Imagen principal/portada
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  bookings      Booking[]
+  reviews       Review[]
+  availability  Availability[]
+  galleryImages GolfCourseImage[] // Galería de imágenes
+  chatConversations ChatConversation[]
+  tenantId      String?
+  tenant        Tenant?   @relation(fields: [tenantId], references: [id])
+}
+
+// Golf Course Gallery Images
+model GolfCourseImage {
+  id            String      @id @default(uuid())
+  golfCourseId  String
+  golfCourse    GolfCourse  @relation(fields: [golfCourseId], references: [id], onDelete: Cascade)
+  imageUrl      String
+  caption       String?     // Descripción opcional de la imagen
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([golfCourseId])
+}
+
+// Booking Management (Existing model, will not be used by new reservation flow)
+model Booking {
+  id            String    @id @default(uuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  golfCourseId  String
+  golfCourse    GolfCourse @relation(fields: [golfCourseId], references: [id])
+  bookingDate   DateTime
+  teeTime       DateTime
+  numberOfPlayers Int
+  totalPrice    Float
+  status        String    @default("pending") // e.g., 'pending', 'confirmed', 'cancelled', 'completed'
+  
+  // Payment method support
+  paymentMethod String    @default("stripe") // "stripe", "paypal", "crypto"
+  paymentData   String?   // JSON string with payment-specific data
+  
+  // PayPal specific fields
+  paypalOrderId String?   // PayPal order ID
+  
+  discountCodeId String? // Optional: for discount code usage
+  discountCode  DiscountCode? @relation(fields: [discountCodeId], references: [id])
+  commission    Commission? @relation(name: "BookingCommission")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  tenantId      String?
+  tenant        Tenant?   @relation(fields: [tenantId], references: [id])
+}
+
+// NEW Reservation Model
+model Reservation {
+  id                String    @id @default(uuid())
+  courseId          String
+  courseName        String
+  date              DateTime
+  time              String
+  players           Int
+  pricePerPlayer    Float
+  totalPrice        Float
+  customerFirstName String
+  customerLastName  String
+  customerEmail     String
+  customerPhone     String
+  specialRequests   String?
+  paymentId         String?
+  paymentStatus     String    @default("pending") // e.g., 'pending', 'completed', 'failed', 'refunded'
+  paymentMethod     String    @default("paypal") // e.g., 'paypal', 'card'
+  status            String    @default("pending") // e.g., 'pending', 'confirmed', 'cancelled', 'completed'
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  tenantId          String?
+  tenant            Tenant?   @relation(fields: [tenantId], references: [id])
+}
+
+// Affiliate (Promoter) Management
+model Affiliate {
+  id            String    @id @default(uuid())
+  userId        String    @unique
+  user          User      @relation(fields: [userId], references: [id])
+  commissionRate Float
+  referralCode  String    @unique
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  commissions   Commission[]
+  tenantId      String?
+  tenant        Tenant?   @relation(fields: [tenantId], references: [id])
+}
+
+// Commission Management
+model Commission {
+  id            String    @id @default(uuid())
+  affiliateId   String
+  affiliate     Affiliate @relation(fields: [affiliateId], references: [id])
+  bookingId     String    @unique
+  booking       Booking   @relation(fields: [bookingId], references: [id], name: "BookingCommission")
+  amount        Float
+  status        String    @default("pending") // e.g., 'pending', 'paid'
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  tenantId      String?
+  tenant        Tenant?   @relation(fields: [tenantId], references: [id])
+}
+
+// Discount Code Management
+model DiscountCode {
+  id            String    @id @default(uuid())
+  code          String    @unique
+  discountType  String    // e.g., 'percentage', 'fixed_amount'
+  value         Float
+  minBookingValue Float?
+  maxUses       Int?
+  currentUses   Int       @default(0)
+  expiresAt     DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  bookings      Booking[]
+  tenantId      String?
+  tenant        Tenant?   @relation(fields: [tenantId], references: [id])
+}
+
+// Review Management
+model Review {
+  id            String    @id @default(uuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  golfCourseId  String
+  golfCourse    GolfCourse @relation(fields: [golfCourseId], references: [id])
+  rating        Int
+  comment       String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  reviewImages  ReviewImage[] // Imágenes subidas por el usuario en la reseña
+  tenantId      String?
+  tenant        Tenant?   @relation(fields: [tenantId], references: [id])
+}
+
+// Review Images uploaded by users
+model ReviewImage {
+  id            String    @id @default(uuid())
+  reviewId      String
+  review        Review    @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  imageUrl      String
+  caption       String?   // Descripción opcional de la imagen
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([reviewId])
+}
+
+// Availability Management
+model Availability {
+  id            String    @id @default(uuid())
+  golfCourseId  String
+  golfCourse    GolfCourse @relation(fields: [golfCourseId], references: [id])
+  date          DateTime
+  startTime     DateTime
+  endTime       DateTime
+  availableSlots Int
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  tenantId      String?
+  tenant        Tenant?   @relation(fields: [tenantId], references: [id])
+
+  @@unique([golfCourseId, date, startTime])
+}
+
+model OnboardingRequest {
+  id            String    @id @default(cuid())
+  contactName   String
+  email         String
+  phone         String
+  position      String
+  courseName    String
+  address       String
+  website       String?
+  description   String?
+  holes         Int       @default(18)
+  priceRange    String?
+  amenities     String?
+  specialRequests String?
+  status        String    @default("pending")
+  submittedAt   DateTime  @default(now())
+  courseId      String? 
+  tenantId      String?
+  tenant        Tenant?   @relation(fields: [tenantId], references: [id])
+
+  @@map("onboarding_requests")
+}
+
+// Payment Methods Management
+model PaymentMethod {
+  id                      String    @id @default(uuid())
+  userId                  String
+  user                    User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type                    String    // 'card', 'paypal', 'bank_account'
+  provider                String    // 'stripe', 'paypal', etc.
+  providerPaymentMethodId String    // ID del método en el proveedor
+  isDefault               Boolean   @default(false)
+  isActive                Boolean   @default(true)
+  metadata                String?   // JSON con datos adicionales (últimos 4 dígitos, marca, etc.)
+  expiresAt               DateTime? // Para tarjetas
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+  tenantId                String?
+  tenant                  Tenant?   @relation(fields: [tenantId], references: [id])
+
+  @@unique([userId, provider, providerPaymentMethodId])
+  @@index([userId])
+  @@index([userId, isDefault])
+}
+
+
+
+
+// Notification System Models
+model NotificationTemplate {
+  id            String    @id @default(uuid())
+  name          String
+  type          String    // 'email', 'sms', 'push', 'in_app'
+  event         String    // 'booking_confirmed', 'booking_cancelled', 'payment_received', etc.
+  subject       String?   // For email notifications
+  content       String    // Template content with placeholders
+  isActive      Boolean   @default(true)
+  tenantId      String?
+  tenant        Tenant?   @relation(fields: [tenantId], references: [id])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  notifications Notification[]
+
+  @@unique([tenantId, event, type])
+}
+
+model Notification {
+  id            String    @id @default(uuid())
+  userId        String?
+  userEmail     String?   // For notifications to non-registered users
+  userPhone     String?   // For SMS notifications
+  type          String    // 'email', 'sms', 'push', 'in_app'
+  event         String    // 'booking_confirmed', 'booking_cancelled', etc.
+  subject       String?
+  content       String
+  status        String    @default("pending") // 'pending', 'sent', 'delivered', 'failed', 'read'
+  sentAt        DateTime?
+  readAt        DateTime?
+  metadata      String?   // JSON with additional data
+  templateId    String?
+  template      NotificationTemplate? @relation(fields: [templateId], references: [id])
+  tenantId      String?
+  tenant        Tenant?   @relation(fields: [tenantId], references: [id])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([tenantId])
+  @@index([status])
+}
+
+model NotificationPreference {
+  id            String    @id @default(uuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  event         String    // 'booking_confirmed', 'booking_cancelled', etc.
+  email         Boolean   @default(true)
+  sms           Boolean   @default(false)
+  push          Boolean   @default(true)
+  inApp         Boolean   @default(true)
+  tenantId      String?
+  tenant        Tenant?   @relation(fields: [tenantId], references: [id])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([userId, event])
+}
+
+// Analytics and Reporting Models
+model AnalyticsEvent {
+  id            String    @id @default(uuid())
+  event         String    // 'page_view', 'booking_started', 'booking_completed', etc.
+  userId        String?
+  sessionId     String?
+  properties    String?   // JSON with event properties
+  timestamp     DateTime  @default(now())
+  tenantId      String?
+  tenant        Tenant?   @relation(fields: [tenantId], references: [id])
+
+  @@index([tenantId, event])
+  @@index([timestamp])
+}
+
+model Report {
+  id            String    @id @default(uuid())
+  name          String
+  type          String    // 'revenue', 'occupancy', 'user_behavior', 'affiliate_performance'
+  parameters    String?   // JSON with report parameters
+  schedule      String?   // Cron expression for scheduled reports
+  isScheduled   Boolean   @default(false)
+  lastRun       DateTime?
+  nextRun       DateTime?
+  format        String    @default("pdf") // 'pdf', 'excel', 'csv'
+  recipients    String?   // JSON array of email recipients
+  tenantId      String?
+  tenant        Tenant?   @relation(fields: [tenantId], references: [id])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  executions    ReportExecution[]
+}
+
+model ReportExecution {
+  id            String    @id @default(uuid())
+  reportId      String
+  report        Report    @relation(fields: [reportId], references: [id], onDelete: Cascade)
+  status        String    @default("running") // 'running', 'completed', 'failed'
+  startedAt     DateTime  @default(now())
+  completedAt   DateTime?
+  fileUrl       String?   // URL to the generated report file
+  error         String?   // Error message if failed
+  tenantId      String?
+  tenant        Tenant?   @relation(fields: [tenantId], references: [id])
+}
+
+// Billing and Subscription Models
+model Subscription {
+  id            String    @id @default(uuid())
+  tenantId      String    @unique
+  tenant        Tenant    @relation(fields: [tenantId], references: [id], onDelete: Cascade)
+  planId        String
+  plan          SubscriptionPlan @relation(fields: [planId], references: [id])
+  status        String    @default("active") // 'active', 'cancelled', 'past_due', 'unpaid'
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  cancelAtPeriodEnd  Boolean @default(false)
+  stripeSubscriptionId String?
+  paypalSubscriptionId String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  invoices      Invoice[]
+}
+
+model SubscriptionPlan {
+  id            String    @id @default(uuid())
+  name          String
+  description   String?
+  price         Float
+  currency      String    @default("USD")
+  interval      String    // 'month', 'year'
+  features      String    // JSON array of features
+  maxCourses    Int?      // Maximum number of golf courses
+  maxBookings   Int?      // Maximum bookings per month
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  subscriptions Subscription[]
+}
+
+model Invoice {
+  id            String    @id @default(uuid())
+  subscriptionId String
+  subscription  Subscription @relation(fields: [subscriptionId], references: [id])
+  amount        Float
+  currency      String    @default("USD")
+  status        String    @default("pending") // 'pending', 'paid', 'failed', 'refunded'
+  dueDate       DateTime
+  paidAt        DateTime?
+  stripeInvoiceId String?
+  paypalInvoiceId String?
+  tenantId      String?
+  tenant        Tenant?   @relation(fields: [tenantId], references: [id])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+// Communication System Models
+model ChatConversation {
+  id            String    @id @default(uuid())
+  tenantId      String
+  tenant        Tenant    @relation(fields: [tenantId], references: [id])
+  customerId    String?   // User ID if registered user
+  customerEmail String
+  customerName  String
+  golfCourseId  String?
+  golfCourse    GolfCourse? @relation(fields: [golfCourseId], references: [id])
+  status        String    @default("open") // 'open', 'closed', 'resolved'
+  priority      String    @default("normal") // 'low', 'normal', 'high', 'urgent'
+  assignedTo    String?   // Staff member assigned to conversation
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  messages      ChatMessage[]
+}
+
+model ChatMessage {
+  id            String    @id @default(uuid())
+  conversationId String
+  conversation  ChatConversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  senderId      String?   // User ID if from registered user
+  senderType    String    // 'customer', 'staff', 'system', 'bot'
+  senderName    String
+  content       String
+  messageType   String    @default("text") // 'text', 'image', 'file', 'system'
+  attachments   String?   // JSON array of attachment URLs
+  isRead        Boolean   @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([conversationId])
+}
+
+// Marketing and CRM Models
+model EmailCampaign {
+  id            String    @id @default(uuid())
+  name          String
+  subject       String
+  content       String    // HTML content
+  status        String    @default("draft") // 'draft', 'scheduled', 'sending', 'sent', 'cancelled'
+  scheduledAt   DateTime?
+  sentAt        DateTime?
+  recipientCount Int      @default(0)
+  openCount     Int       @default(0)
+  clickCount    Int       @default(0)
+  tenantId      String
+  tenant        Tenant    @relation(fields: [tenantId], references: [id])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  recipients    EmailCampaignRecipient[]
+}
+
+model EmailCampaignRecipient {
+  id            String    @id @default(uuid())
+  campaignId    String
+  campaign      EmailCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  email         String
+  name          String?
+  status        String    @default("pending") // 'pending', 'sent', 'delivered', 'opened', 'clicked', 'bounced'
+  sentAt        DateTime?
+  openedAt      DateTime?
+  clickedAt     DateTime?
+
+  @@index([campaignId])
+}
+
+model LoyaltyProgram {
+  id            String    @id @default(uuid())
+  name          String
+  description   String?
+  pointsPerBooking Float   @default(1.0)
+  pointsPerDollar  Float   @default(0.1)
+  isActive      Boolean   @default(true)
+  tenantId      String    @unique
+  tenant        Tenant    @relation(fields: [tenantId], references: [id])
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  rewards       LoyaltyReward[]
+  transactions  LoyaltyTransaction[]
+}
+
+model LoyaltyReward {
+  id            String    @id @default(uuid())
+  programId     String
+  program       LoyaltyProgram @relation(fields: [programId], references: [id])
+  name          String
+  description   String?
+  pointsCost    Int
+  rewardType    String    // 'discount_percentage', 'discount_fixed', 'free_booking', 'merchandise'
+  rewardValue   Float?    // Discount amount or value
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  redemptions   LoyaltyRedemption[]
+}
+
+model LoyaltyTransaction {
+  id            String    @id @default(uuid())
+  programId     String
+  program       LoyaltyProgram @relation(fields: [programId], references: [id])
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  type          String    // 'earned', 'redeemed', 'expired', 'adjusted'
+  points        Int
+  description   String?
+  bookingId     String?   // If related to a booking
+  createdAt     DateTime  @default(now())
+
+  @@index([userId])
+}
+
+model LoyaltyRedemption {
+  id            String    @id @default(uuid())
+  rewardId      String
+  reward        LoyaltyReward @relation(fields: [rewardId], references: [id])
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  pointsUsed    Int
+  status        String    @default("pending") // 'pending', 'approved', 'used', 'expired'
+  bookingId     String?   // If applied to a booking
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([userId])
+}
+

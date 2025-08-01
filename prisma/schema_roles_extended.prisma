@@ -1,0 +1,491 @@
+// Extended Schema with Advanced Role System for TeeReserve V2.0
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ============================================================================
+// ADVANCED USER & ROLE MANAGEMENT SYSTEM
+// ============================================================================
+
+model User {
+  id            String    @id @default(uuid())
+  email         String    @unique
+  name          String?
+  password      String
+  phone         String?
+  avatar        String?   // Profile picture URL
+  
+  // Role System
+  roleId        String
+  role          Role      @relation(fields: [roleId], references: [id])
+  
+  // Course Association (for course staff)
+  courseId      String?   // Optional: which course they belong to
+  course        GolfCourse? @relation(fields: [courseId], references: [id])
+  
+  // Status & Metadata
+  isActive      Boolean   @default(true)
+  lastLoginAt   DateTime?
+  emailVerified Boolean   @default(false)
+  phoneVerified Boolean   @default(false)
+  
+  // Timestamps
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Relations
+  bookings      Booking[]
+  reviews       Review[]
+  affiliate     Affiliate?
+  paymentMethods PaymentMethod[]
+  
+  // Form Builder Relations
+  createdForms  FormSchema[] @relation("FormCreator")
+  formSubmissions FormSubmission[]
+  
+  // Activity Logs
+  activityLogs  ActivityLog[]
+  
+  // User Permissions (override role permissions if needed)
+  userPermissions UserPermission[]
+
+  @@index([email])
+  @@index([roleId])
+  @@index([courseId])
+}
+
+model Role {
+  id            String    @id @default(uuid())
+  name          String    @unique // 'SuperAdmin', 'CourseOwner', 'CourseManager', 'CourseStaff', 'Customer'
+  displayName   String    // Human-readable name
+  description   String?
+  level         Int       // 1=SuperAdmin, 2=CourseOwner, 3=CourseManager, 4=CourseStaff, 5=Customer
+  isSystemRole  Boolean   @default(false) // Cannot be deleted
+  
+  // Timestamps
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Relations
+  users         User[]
+  rolePermissions RolePermission[]
+
+  @@index([level])
+}
+
+model Permission {
+  id            String    @id @default(uuid())
+  name          String    @unique // e.g., 'courses.create', 'bookings.view', 'forms.edit'
+  displayName   String    // Human-readable name
+  description   String?
+  module        String    // 'courses', 'bookings', 'forms', 'users', 'analytics', etc.
+  action        String    // 'create', 'read', 'update', 'delete', 'manage'
+  
+  // Timestamps
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Relations
+  rolePermissions RolePermission[]
+  userPermissions UserPermission[]
+
+  @@index([module])
+  @@index([action])
+}
+
+model RolePermission {
+  id           String     @id @default(uuid())
+  roleId       String
+  permissionId String
+  granted      Boolean    @default(true)
+  
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  
+  createdAt    DateTime   @default(now())
+  
+  @@unique([roleId, permissionId])
+}
+
+model UserPermission {
+  id           String     @id @default(uuid())
+  userId       String
+  permissionId String
+  granted      Boolean    // true = grant, false = deny (overrides role permission)
+  
+  user         User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+  
+  createdAt    DateTime   @default(now())
+  createdBy    String?    // Who granted this permission
+  
+  @@unique([userId, permissionId])
+}
+
+// ============================================================================
+// FORM BUILDER SYSTEM
+// ============================================================================
+
+model FormSchema {
+  id            String    @id @default(uuid())
+  name          String
+  description   String?
+  version       String    @default("1.0.0")
+  
+  // Schema Data (JSON)
+  fields        String    // JSON string of FormField[]
+  settings      String    // JSON string of FormSettings
+  
+  // Ownership & Access
+  createdBy     String
+  creator       User      @relation("FormCreator", fields: [createdBy], references: [id])
+  courseId      String?   // Optional: associated with specific course
+  course        GolfCourse? @relation(fields: [courseId], references: [id])
+  
+  // Status
+  isPublished   Boolean   @default(false)
+  isActive      Boolean   @default(true)
+  
+  // Timestamps
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  publishedAt   DateTime?
+  
+  // Relations
+  submissions   FormSubmission[]
+
+  @@index([createdBy])
+  @@index([courseId])
+  @@index([isPublished])
+}
+
+model FormSubmission {
+  id            String     @id @default(uuid())
+  formId        String
+  form          FormSchema @relation(fields: [formId], references: [id], onDelete: Cascade)
+  
+  // Submission Data
+  data          String     // JSON string of submitted data
+  status        String     @default("submitted") // 'draft', 'submitted', 'processed', 'archived'
+  
+  // Submitter Info
+  submittedBy   String?    // User ID if authenticated
+  submitter     User?      @relation(fields: [submittedBy], references: [id])
+  submitterEmail String?   // Email if not authenticated
+  submitterName String?    // Name if not authenticated
+  
+  // Metadata
+  ipAddress     String?
+  userAgent     String?
+  referrer      String?
+  
+  // Timestamps
+  submittedAt   DateTime   @default(now())
+  processedAt   DateTime?
+  
+  @@index([formId])
+  @@index([submittedBy])
+  @@index([status])
+}
+
+// ============================================================================
+// ACTIVITY LOGGING SYSTEM
+// ============================================================================
+
+model ActivityLog {
+  id            String    @id @default(uuid())
+  userId        String?
+  user          User?     @relation(fields: [userId], references: [id])
+  
+  // Activity Details
+  action        String    // 'create', 'update', 'delete', 'login', 'logout', etc.
+  resource      String    // 'course', 'booking', 'form', 'user', etc.
+  resourceId    String?   // ID of the affected resource
+  
+  // Context
+  description   String?   // Human-readable description
+  metadata      String?   // JSON string with additional data
+  ipAddress     String?
+  userAgent     String?
+  
+  // Timestamps
+  createdAt     DateTime  @default(now())
+
+  @@index([userId])
+  @@index([action])
+  @@index([resource])
+  @@index([createdAt])
+}
+
+// ============================================================================
+// EXISTING MODELS (EXTENDED)
+// ============================================================================
+
+model GolfCourse {
+  id            String      @id @default(uuid())
+  name          String
+  slug          String      @unique
+  location      String
+  description   String?
+  holes         Int
+  rating        Float?
+  priceWeekday  Float?
+  priceWeekend  Float?
+  teeSheetUrl   String?
+  currency      String?     @default("USD")
+  isActive      Boolean     @default(true)
+  features      String?
+  difficulty    String?
+  contactEmail  String?
+  contactPhone  String?
+  imageUrl      String?
+  
+  // Ownership & Management
+  ownerId       String?     // Course owner user ID
+  owner         User?       @relation(fields: [ownerId], references: [id])
+  
+  // Settings
+  settings      String?     // JSON string with course-specific settings
+  
+  // Timestamps
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  
+  // Relations
+  bookings      Booking[]
+  reviews       Review[]
+  availability  Availability[]
+  galleryImages GolfCourseImage[]
+  
+  // Staff & Management
+  staff         User[]      @relation("CourseStaff")
+  
+  // Form Builder
+  forms         FormSchema[]
+
+  @@index([slug])
+  @@index([ownerId])
+  @@index([isActive])
+}
+
+// Golf Course Gallery Images
+model GolfCourseImage {
+  id            String      @id @default(uuid())
+  golfCourseId  String
+  golfCourse    GolfCourse  @relation(fields: [golfCourseId], references: [id], onDelete: Cascade)
+  imageUrl      String
+  caption       String?
+  displayOrder  Int         @default(0)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([golfCourseId, displayOrder])
+}
+
+// Booking Management
+model Booking {
+  id            String    @id @default(uuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  golfCourseId  String
+  golfCourse    GolfCourse @relation(fields: [golfCourseId], references: [id])
+  bookingDate   DateTime
+  teeTime       DateTime
+  numberOfPlayers Int
+  totalPrice    Float
+  status        String    @default("pending")
+  
+  // Payment method support
+  paymentMethod String    @default("stripe")
+  paymentData   String?
+  paypalOrderId String?
+  
+  discountCodeId String?
+  discountCode  DiscountCode? @relation(fields: [discountCodeId], references: [id])
+  commission    Commission? @relation(name: "BookingCommission")
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([userId])
+  @@index([golfCourseId])
+  @@index([bookingDate])
+  @@index([status])
+}
+
+// Availability Management
+model Availability {
+  id            String      @id @default(uuid())
+  golfCourseId  String
+  golfCourse    GolfCourse  @relation(fields: [golfCourseId], references: [id], onDelete: Cascade)
+  date          DateTime
+  startTime     String      // e.g., "08:00"
+  endTime       String      // e.g., "18:00"
+  interval      Int         @default(15) // minutes between tee times
+  maxPlayers    Int         @default(4)
+  isAvailable   Boolean     @default(true)
+  specialPricing Float?     // Override default pricing
+  notes         String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([golfCourseId, date])
+}
+
+// Review System
+model Review {
+  id            String      @id @default(uuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id])
+  golfCourseId  String
+  golfCourse    GolfCourse  @relation(fields: [golfCourseId], references: [id])
+  rating        Int         // 1-5 stars
+  title         String?
+  comment       String?
+  isVerified    Boolean     @default(false)
+  isPublic      Boolean     @default(true)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  reviewImages  ReviewImage[]
+
+  @@index([golfCourseId])
+  @@index([userId])
+  @@index([rating])
+}
+
+model ReviewImage {
+  id            String    @id @default(uuid())
+  reviewId      String
+  review        Review    @relation(fields: [reviewId], references: [id], onDelete: Cascade)
+  imageUrl      String
+  caption       String?
+  displayOrder  Int       @default(0)
+  createdAt     DateTime  @default(now())
+
+  @@index([reviewId, displayOrder])
+}
+
+// Affiliate System
+model Affiliate {
+  id            String    @id @default(uuid())
+  userId        String    @unique
+  user          User      @relation(fields: [userId], references: [id])
+  code          String    @unique
+  commissionRate Float   @default(0.05) // 5% default
+  totalEarnings Float    @default(0)
+  isActive      Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  commissions   Commission[]
+
+  @@index([code])
+}
+
+model Commission {
+  id            String    @id @default(uuid())
+  affiliateId   String
+  affiliate     Affiliate @relation(fields: [affiliateId], references: [id])
+  bookingId     String    @unique
+  booking       Booking   @relation(name: "BookingCommission", fields: [bookingId], references: [id])
+  amount        Float
+  status        String    @default("pending") // pending, paid, cancelled
+  paidAt        DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@index([affiliateId])
+  @@index([status])
+}
+
+// Discount System
+model DiscountCode {
+  id            String    @id @default(uuid())
+  code          String    @unique
+  description   String?
+  discountType  String    // 'percentage', 'fixed'
+  discountValue Float
+  minAmount     Float?    // Minimum booking amount
+  maxUses       Int?      // Maximum number of uses
+  currentUses   Int       @default(0)
+  isActive      Boolean   @default(true)
+  validFrom     DateTime
+  validUntil    DateTime
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  bookings      Booking[]
+
+  @@index([code])
+  @@index([isActive])
+}
+
+// Payment Methods
+model PaymentMethod {
+  id            String    @id @default(uuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id])
+  type          String    // 'card', 'paypal', 'bank'
+  provider      String    // 'stripe', 'paypal'
+  externalId    String    // Provider's ID for this payment method
+  isDefault     Boolean   @default(false)
+  metadata      String?   // JSON string with additional data
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([userId])
+}
+
+// Onboarding Requests
+model OnboardingRequest {
+  id            String    @id @default(uuid())
+  courseName    String
+  contactName   String
+  contactEmail  String
+  contactPhone  String?
+  location      String
+  holes         Int?
+  description   String?
+  website       String?
+  status        String    @default("pending") // pending, approved, rejected
+  notes         String?   // Admin notes
+  
+  // Form Data (from dynamic forms)
+  formData      String?   // JSON string with additional form data
+  
+  processedBy   String?   // Admin who processed the request
+  processedAt   DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([status])
+  @@index([contactEmail])
+}
+
+// Reservation System (New)
+model Reservation {
+  id            String      @id @default(uuid())
+  golfCourseId  String
+  golfCourse    GolfCourse  @relation(fields: [golfCourseId], references: [id])
+  customerName  String
+  customerEmail String
+  customerPhone String?
+  date          DateTime
+  time          String
+  players       Int
+  totalAmount   Float
+  status        String      @default("confirmed") // confirmed, cancelled, completed
+  paymentStatus String      @default("pending")  // pending, paid, refunded
+  paymentMethod String?
+  notes         String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@index([golfCourseId])
+  @@index([date])
+  @@index([status])
+}
+

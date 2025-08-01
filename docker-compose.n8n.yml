@@ -1,0 +1,67 @@
+version: '3.8'
+
+services:
+  n8n:
+    image: docker.n8n.io/n8nio/n8n
+    container_name: teereserve-n8n
+    restart: always
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_BASIC_AUTH_ACTIVE=true
+      - N8N_BASIC_AUTH_USER=admin
+      - N8N_BASIC_AUTH_PASSWORD=TeeReserve2025!
+      - N8N_HOST=0.0.0.0
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=http://localhost:5678
+      - GENERIC_TIMEZONE=America/Mexico_City
+      - N8N_DEFAULT_LOCALE=es
+      - N8N_METRICS=true
+      - N8N_LOG_LEVEL=info
+      - N8N_ENCRYPTION_KEY=TeeReserveGolfN8NEncryptionKey2025
+      # Configuración de base de datos (SQLite para desarrollo)
+      - DB_TYPE=sqlite
+      - DB_SQLITE_DATABASE=/home/node/.n8n/database.sqlite
+      # Variables de entorno para integraciones
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - RESEND_API_KEY=${RESEND_API_KEY}
+      - TWILIO_ACCOUNT_SID=${TWILIO_ACCOUNT_SID}
+      - TWILIO_AUTH_TOKEN=${TWILIO_AUTH_TOKEN}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./n8n/workflows:/home/node/.n8n/workflows
+      - ./n8n/credentials:/home/node/.n8n/credentials
+    networks:
+      - teereserve-network
+
+  # Base de datos PostgreSQL para n8n (producción)
+  n8n-postgres:
+    image: postgres:15
+    container_name: teereserve-n8n-db
+    restart: always
+    environment:
+      - POSTGRES_DB=n8n
+      - POSTGRES_USER=n8n
+      - POSTGRES_PASSWORD=TeeReserveN8NDB2025!
+      - POSTGRES_NON_ROOT_USER=n8n
+      - POSTGRES_NON_ROOT_PASSWORD=TeeReserveN8NDB2025!
+    volumes:
+      - n8n_postgres_data:/var/lib/postgresql/data
+    networks:
+      - teereserve-network
+    profiles:
+      - production
+
+volumes:
+  n8n_data:
+    driver: local
+  n8n_postgres_data:
+    driver: local
+
+networks:
+  teereserve-network:
+    driver: bridge
+

@@ -1,0 +1,281 @@
+{
+  "name": "TeeReserve - Abandoned Reservation Recovery",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "abandoned-reservation",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-abandoned-reservation",
+      "name": "Webhook - Abandoned Reservation",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "abandoned-reservation-webhook"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-1",
+              "leftValue": "={{ $json.data.userEmail }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "isNotEmpty"
+              }
+            },
+            {
+              "id": "condition-2",
+              "leftValue": "={{ $json.data.courseName }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "isNotEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "validate-abandonment-data",
+      "name": "Validate Abandonment Data",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "amount": 30,
+        "unit": "minutes"
+      },
+      "id": "wait-30-minutes",
+      "name": "Wait 30 Minutes",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [680, 200]
+    },
+    {
+      "parameters": {
+        "authentication": "headerAuth",
+        "requestMethod": "POST",
+        "url": "https://api.resend.com/emails",
+        "options": {
+          "headers": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Bearer {{ $env.RESEND_API_KEY }}"
+              }
+            ]
+          }
+        },
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"from\": \"TeeReserve Golf <reservas@teereserve.golf>\",\n  \"to\": [\"{{ $json.data.userEmail }}\"],\n  \"subject\": \"🏌️ ¿Olvidaste completar tu reserva en {{ $json.data.courseName }}?\",\n  \"html\": \"<div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'><div style='background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; padding: 30px; text-align: center;'><h1 style='margin: 0; font-size: 28px;'>🏌️ ¡No pierdas tu tee time!</h1><p style='margin: 10px 0 0 0; font-size: 18px;'>Tu reserva está esperando</p></div><div style='padding: 30px; background: #f9fafb;'><h2 style='color: #f59e0b; margin-top: 0;'>Hola {{ $json.data.userName }},</h2><p style='font-size: 16px; line-height: 1.6; color: #374151;'>Notamos que comenzaste a reservar en <strong>{{ $json.data.courseName }}</strong> pero no completaste el proceso. ¡No te preocupes, aún puedes asegurar tu lugar!</p><div style='background: white; border-radius: 12px; padding: 25px; margin: 25px 0; border: 2px solid #f59e0b; box-shadow: 0 4px 6px rgba(0,0,0,0.1);'><h3 style='color: #f59e0b; margin-top: 0; font-size: 22px;'>🎯 Tu Reserva Pendiente</h3><div style='display: grid; gap: 15px;'><div style='display: flex; align-items: center;'><span style='font-size: 18px; margin-right: 10px;'>🏌️</span><div><strong style='color: #374151;'>Campo:</strong> {{ $json.data.courseName }}</div></div><div style='display: flex; align-items: center;'><span style='font-size: 18px; margin-right: 10px;'>⏰</span><div><strong style='color: #374151;'>Iniciada:</strong> {{ $json.data.abandonedAt }}</div></div></div></div><div style='background: #fef3c7; border-radius: 8px; padding: 20px; margin: 20px 0; border-left: 4px solid #f59e0b;'><h3 style='color: #92400e; margin-top: 0;'>⚡ ¡Oferta Especial por Tiempo Limitado!</h3><p style='color: #92400e; font-size: 16px; font-weight: bold; margin-bottom: 0;'>Completa tu reserva en las próximas 2 horas y obtén:</p><ul style='color: #92400e; line-height: 1.8; margin-bottom: 0;'><li>🎁 10% de descuento en tu reserva</li><li>🚗 Carrito de golf gratuito</li><li>☕ Bebida de cortesía en el club house</li></ul></div><div style='text-align: center; margin: 30px 0;'><a href='https://teereserve.golf/courses/{{ $json.data.courseId }}?recovery=true&token={{ $json.data.userId }}' style='background: #f59e0b; color: white; padding: 18px 35px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; font-size: 16px;'>Completar Mi Reserva Ahora</a></div><p style='color: #6b7280; font-size: 14px; text-align: center;'>*Oferta válida por 2 horas. Los horarios se asignan por orden de llegada.</p></div></div>\"\n}"
+      },
+      "id": "send-first-recovery-email",
+      "name": "Send First Recovery Email",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 200]
+    },
+    {
+      "parameters": {
+        "amount": 2,
+        "unit": "hours"
+      },
+      "id": "wait-2-hours",
+      "name": "Wait 2 Hours",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [1120, 200]
+    },
+    {
+      "parameters": {
+        "authentication": "headerAuth",
+        "requestMethod": "POST",
+        "url": "https://api.resend.com/emails",
+        "options": {
+          "headers": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Bearer {{ $env.RESEND_API_KEY }}"
+              }
+            ]
+          }
+        },
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"from\": \"TeeReserve Golf <ofertas@teereserve.golf>\",\n  \"to\": [\"{{ $json.data.userEmail }}\"],\n  \"subject\": \"🔥 Última oportunidad: 15% OFF en {{ $json.data.courseName }}\",\n  \"html\": \"<div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'><div style='background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); color: white; padding: 30px; text-align: center;'><h1 style='margin: 0; font-size: 28px;'>🔥 ÚLTIMA OPORTUNIDAD</h1><p style='margin: 10px 0 0 0; font-size: 20px; font-weight: bold;'>15% de Descuento - Solo por 24 horas</p></div><div style='padding: 30px; background: #f9fafb;'><h2 style='color: #dc2626; margin-top: 0;'>{{ $json.data.userName }}, no dejes pasar esta oportunidad</h2><p style='font-size: 16px; line-height: 1.6; color: #374151;'>Sabemos que estás interesado en jugar en <strong>{{ $json.data.courseName }}</strong>. Como última oportunidad, te ofrecemos nuestro mejor descuento.</p><div style='background: #fee2e2; border-radius: 8px; padding: 25px; margin: 25px 0; text-align: center; border: 2px dashed #dc2626;'><h3 style='color: #dc2626; margin: 0 0 10px 0; font-size: 32px;'>15% OFF</h3><p style='color: #dc2626; font-size: 18px; font-weight: bold; margin: 0;'>Código: RECUPERA15</p><p style='color: #dc2626; font-size: 14px; margin: 10px 0 0 0;'>Válido solo por 24 horas</p></div><div style='background: white; border-radius: 8px; padding: 20px; margin: 20px 0; border-left: 4px solid #dc2626;'><h3 style='color: #dc2626; margin-top: 0;'>🎁 Beneficios Incluidos:</h3><ul style='color: #374151; line-height: 1.8; margin-bottom: 0;'><li>✅ 15% de descuento en green fees</li><li>✅ Carrito de golf incluido</li><li>✅ Acceso al driving range</li><li>✅ Toalla y tees de cortesía</li><li>✅ Descuento en pro shop</li></ul></div><div style='text-align: center; margin: 30px 0;'><a href='https://teereserve.golf/courses/{{ $json.data.courseId }}?promo=RECUPERA15&token={{ $json.data.userId }}' style='background: #dc2626; color: white; padding: 20px 40px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; font-size: 18px;'>Reservar con 15% OFF</a></div><p style='color: #6b7280; font-size: 12px; text-align: center;'>Esta es nuestra última comunicación sobre esta reserva. La oferta expira en 24 horas.</p></div></div>\"\n}"
+      },
+      "id": "send-final-recovery-email",
+      "name": "Send Final Recovery Email",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1340, 200]
+    },
+    {
+      "parameters": {
+        "amount": 1,
+        "unit": "days"
+      },
+      "id": "wait-1-day",
+      "name": "Wait 1 Day",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [1560, 200]
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "={{ $env.TEERESERVE_API_URL }}/api/n8n/webhook",
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"action\": \"update_user_status\",\n  \"data\": {\n    \"userId\": \"{{ $json.data.userId }}\",\n    \"status\": \"recovery_sequence_completed\",\n    \"metadata\": {\n      \"courseId\": \"{{ $json.data.courseId }}\",\n      \"courseName\": \"{{ $json.data.courseName }}\",\n      \"abandonedAt\": \"{{ $json.data.abandonedAt }}\",\n      \"sequenceCompletedAt\": \"{{ $now.toISO() }}\",\n      \"emailsSent\": 2,\n      \"finalOutcome\": \"sequence_completed\"\n    }\n  }\n}"
+      },
+      "id": "mark-sequence-complete",
+      "name": "Mark Sequence Complete",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1780, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "Abandoned reservation recovery sequence initiated"
+      },
+      "id": "webhook-response",
+      "name": "Webhook Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [680, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "Invalid abandonment data provided"
+      },
+      "id": "error-response",
+      "name": "Error Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [680, 500]
+    }
+  ],
+  "connections": {
+    "Webhook - Abandoned Reservation": {
+      "main": [
+        [
+          {
+            "node": "Validate Abandonment Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Abandonment Data": {
+      "main": [
+        [
+          {
+            "node": "Wait 30 Minutes",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 30 Minutes": {
+      "main": [
+        [
+          {
+            "node": "Send First Recovery Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send First Recovery Email": {
+      "main": [
+        [
+          {
+            "node": "Wait 2 Hours",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 2 Hours": {
+      "main": [
+        [
+          {
+            "node": "Send Final Recovery Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Final Recovery Email": {
+      "main": [
+        [
+          {
+            "node": "Wait 1 Day",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 1 Day": {
+      "main": [
+        [
+          {
+            "node": "Mark Sequence Complete",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2025-01-22T21:40:00.000Z",
+      "updatedAt": "2025-01-22T21:40:00.000Z",
+      "id": "teereserve-recovery",
+      "name": "TeeReserve Recovery"
+    }
+  ],
+  "triggerCount": 0,
+  "updatedAt": "2025-01-22T21:40:00.000Z",
+  "versionId": "1"
+}
+

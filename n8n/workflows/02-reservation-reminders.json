@@ -1,0 +1,309 @@
+{
+  "name": "TeeReserve - Reservation Reminders",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "reservation-reminder",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-reservation-reminder",
+      "name": "Webhook - Reservation Reminder",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "reservation-reminder-webhook"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-1",
+              "leftValue": "={{ $json.data.userEmail }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "isNotEmpty"
+              }
+            },
+            {
+              "id": "condition-2",
+              "leftValue": "={{ $json.data.userPhone }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "isNotEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "validate-reservation-data",
+      "name": "Validate Reservation Data",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "authentication": "headerAuth",
+        "requestMethod": "POST",
+        "url": "https://api.resend.com/emails",
+        "options": {
+          "headers": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Bearer {{ $env.RESEND_API_KEY }}"
+              }
+            ]
+          }
+        },
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"from\": \"TeeReserve Golf <reservas@teereserve.golf>\",\n  \"to\": [\"{{ $json.data.userEmail }}\"],\n  \"subject\": \"⏰ Recordatorio: Tu tee time es mañana - {{ $json.data.courseName }}\",\n  \"html\": \"<div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'><div style='background: linear-gradient(135deg, #059669 0%, #047857 100%); color: white; padding: 30px; text-align: center;'><h1 style='margin: 0; font-size: 28px;'>⏰ Recordatorio de Reserva</h1><p style='margin: 10px 0 0 0; font-size: 18px;'>Tu tee time es mañana</p></div><div style='padding: 30px; background: #f9fafb;'><h2 style='color: #059669; margin-top: 0;'>¡Hola {{ $json.data.userName }}!</h2><p style='font-size: 16px; line-height: 1.6; color: #374151;'>Te recordamos que tienes una reserva confirmada para mañana. ¡Prepárate para una ronda increíble!</p><div style='background: white; border-radius: 12px; padding: 25px; margin: 25px 0; border: 2px solid #059669; box-shadow: 0 4px 6px rgba(0,0,0,0.1);'><h3 style='color: #059669; margin-top: 0; font-size: 22px;'>📋 Detalles de tu Reserva</h3><div style='display: grid; gap: 15px;'><div style='display: flex; align-items: center;'><span style='font-size: 18px; margin-right: 10px;'>🏌️</span><div><strong style='color: #374151;'>Campo:</strong> {{ $json.data.courseName }}</div></div><div style='display: flex; align-items: center;'><span style='font-size: 18px; margin-right: 10px;'>📅</span><div><strong style='color: #374151;'>Fecha:</strong> {{ $json.data.date }}</div></div><div style='display: flex; align-items: center;'><span style='font-size: 18px; margin-right: 10px;'>⏰</span><div><strong style='color: #374151;'>Hora:</strong> {{ $json.data.time }}</div></div><div style='display: flex; align-items: center;'><span style='font-size: 18px; margin-right: 10px;'>👥</span><div><strong style='color: #374151;'>Jugadores:</strong> {{ $json.data.players }}</div></div><div style='display: flex; align-items: center;'><span style='font-size: 18px; margin-right: 10px;'>💰</span><div><strong style='color: #374151;'>Total:</strong> ${{ $json.data.totalAmount }} USD</div></div></div></div><div style='background: #fef3c7; border-radius: 8px; padding: 20px; margin: 20px 0; border-left: 4px solid #f59e0b;'><h3 style='color: #92400e; margin-top: 0;'>💡 Consejos para tu Ronda</h3><ul style='color: #92400e; line-height: 1.8; margin-bottom: 0;'><li>Llega 30 minutos antes para el check-in</li><li>Revisa el clima y vístete apropiadamente</li><li>Trae protector solar y suficiente agua</li><li>Confirma tu carrito de golf si lo reservaste</li></ul></div><div style='text-align: center; margin: 30px 0;'><a href='https://teereserve.golf/reservations' style='background: #059669; color: white; padding: 15px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; margin-right: 10px;'>Ver Mi Reserva</a><a href='https://teereserve.golf/help' style='background: #6b7280; color: white; padding: 15px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;'>Contactar Soporte</a></div><p style='color: #6b7280; font-size: 14px; text-align: center;'>¿Necesitas cambiar algo? Contáctanos en <a href='mailto:reservas@teereserve.golf' style='color: #059669;'>reservas@teereserve.golf</a></p></div></div>\"\n}"
+      },
+      "id": "send-email-reminder",
+      "name": "Send Email Reminder",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 200]
+    },
+    {
+      "parameters": {
+        "authentication": "headerAuth",
+        "requestMethod": "POST",
+        "url": "https://api.twilio.com/2010-04-01/Accounts/{{ $env.TWILIO_ACCOUNT_SID }}/Messages.json",
+        "options": {
+          "headers": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Basic {{ $base64Encode($env.TWILIO_ACCOUNT_SID + ':' + $env.TWILIO_AUTH_TOKEN) }}"
+              }
+            ]
+          }
+        },
+        "sendBody": true,
+        "specifyBody": "form",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "From",
+              "value": "whatsapp:+14155238886"
+            },
+            {
+              "name": "To",
+              "value": "whatsapp:{{ $json.data.userPhone }}"
+            },
+            {
+              "name": "Body",
+              "value": "🏌️ *TeeReserve Golf - Recordatorio*\n\n¡Hola {{ $json.data.userName }}!\n\nTe recordamos que tienes una reserva mañana:\n\n📍 *Campo:* {{ $json.data.courseName }}\n📅 *Fecha:* {{ $json.data.date }}\n⏰ *Hora:* {{ $json.data.time }}\n👥 *Jugadores:* {{ $json.data.players }}\n💰 *Total:* ${{ $json.data.totalAmount }} USD\n\n💡 *Consejos:*\n• Llega 30 min antes\n• Revisa el clima\n• Trae protector solar\n\n¿Necesitas ayuda? Responde a este mensaje.\n\n¡Que tengas una excelente ronda! 🏆"
+            }
+          ]
+        }
+      },
+      "id": "send-whatsapp-reminder",
+      "name": "Send WhatsApp Reminder",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "amount": 2,
+        "unit": "hours"
+      },
+      "id": "wait-2-hours",
+      "name": "Wait 2 Hours",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [900, 250]
+    },
+    {
+      "parameters": {
+        "authentication": "headerAuth",
+        "requestMethod": "POST",
+        "url": "https://api.twilio.com/2010-04-01/Accounts/{{ $env.TWILIO_ACCOUNT_SID }}/Messages.json",
+        "options": {
+          "headers": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Basic {{ $base64Encode($env.TWILIO_ACCOUNT_SID + ':' + $env.TWILIO_AUTH_TOKEN) }}"
+              }
+            ]
+          }
+        },
+        "sendBody": true,
+        "specifyBody": "form",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "From",
+              "value": "whatsapp:+14155238886"
+            },
+            {
+              "name": "To",
+              "value": "whatsapp:{{ $json.data.userPhone }}"
+            },
+            {
+              "name": "Body",
+              "value": "🌤️ *Actualización del Clima - {{ $json.data.courseName }}*\n\nHola {{ $json.data.userName }},\n\nAquí tienes la información del clima para tu ronda de mañana:\n\n🌡️ *Temperatura:* 24°C - 28°C\n☀️ *Condiciones:* Soleado\n💨 *Viento:* 10 km/h\n🌧️ *Lluvia:* 0% probabilidad\n\n✅ *¡Condiciones perfectas para golf!*\n\n👕 *Recomendación de vestimenta:*\n• Ropa ligera y cómoda\n• Gorra o sombrero\n• Protector solar SPF 30+\n• Lentes de sol\n\n¡Nos vemos mañana en el campo! 🏌️‍♂️"
+            }
+          ]
+        }
+      },
+      "id": "send-weather-update",
+      "name": "Send Weather Update",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 250]
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "={{ $env.TEERESERVE_API_URL }}/api/n8n/webhook",
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"action\": \"log_automation_event\",\n  \"data\": {\n    \"eventType\": \"reservation_reminder_sent\",\n    \"userId\": \"{{ $json.data.userId }}\",\n    \"workflowId\": \"reservation-reminders\",\n    \"details\": {\n      \"reservationId\": \"{{ $json.data.reservationId }}\",\n      \"courseName\": \"{{ $json.data.courseName }}\",\n      \"date\": \"{{ $json.data.date }}\",\n      \"time\": \"{{ $json.data.time }}\",\n      \"remindersSent\": [\"email\", \"whatsapp\", \"weather_update\"],\n      \"sentAt\": \"{{ $now.toISO() }}\"\n    }\n  }\n}"
+      },
+      "id": "log-reminder-completion",
+      "name": "Log Reminder Completion",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1340, 250]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "Reservation reminders initiated successfully"
+      },
+      "id": "webhook-response",
+      "name": "Webhook Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [680, 450]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "Invalid reservation data provided"
+      },
+      "id": "error-response",
+      "name": "Error Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [680, 550]
+    }
+  ],
+  "connections": {
+    "Webhook - Reservation Reminder": {
+      "main": [
+        [
+          {
+            "node": "Validate Reservation Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Reservation Data": {
+      "main": [
+        [
+          {
+            "node": "Send Email Reminder",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Send WhatsApp Reminder",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Email Reminder": {
+      "main": [
+        [
+          {
+            "node": "Wait 2 Hours",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send WhatsApp Reminder": {
+      "main": [
+        [
+          {
+            "node": "Wait 2 Hours",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 2 Hours": {
+      "main": [
+        [
+          {
+            "node": "Send Weather Update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Weather Update": {
+      "main": [
+        [
+          {
+            "node": "Log Reminder Completion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2025-01-22T21:35:00.000Z",
+      "updatedAt": "2025-01-22T21:35:00.000Z",
+      "id": "teereserve-operations",
+      "name": "TeeReserve Operations"
+    }
+  ],
+  "triggerCount": 0,
+  "updatedAt": "2025-01-22T21:35:00.000Z",
+  "versionId": "1"
+}
+

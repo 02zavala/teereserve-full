@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sin Conexión - TeeReserve</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #16a34a 0%, #15803d 100%);
+            color: white;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        
+        .container {
+            text-align: center;
+            max-width: 500px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+        
+        .icon {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto 30px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+        }
+        
+        h1 {
+            font-size: 2.5rem;
+            margin-bottom: 20px;
+            font-weight: 700;
+        }
+        
+        p {
+            font-size: 1.1rem;
+            line-height: 1.6;
+            margin-bottom: 30px;
+            opacity: 0.9;
+        }
+        
+        .features {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 25px;
+            margin: 30px 0;
+            text-align: left;
+        }
+        
+        .features h3 {
+            font-size: 1.3rem;
+            margin-bottom: 15px;
+            text-align: center;
+        }
+        
+        .feature-list {
+            list-style: none;
+        }
+        
+        .feature-list li {
+            padding: 8px 0;
+            padding-left: 25px;
+            position: relative;
+        }
+        
+        .feature-list li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #4ade80;
+            font-weight: bold;
+        }
+        
+        .retry-btn {
+            background: white;
+            color: #16a34a;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 50px;
+            font-size: 1.1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin: 10px;
+        }
+        
+        .retry-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
+        }
+        
+        .status {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            background: rgba(255, 255, 255, 0.1);
+            font-size: 0.9rem;
+        }
+        
+        .online {
+            background: rgba(34, 197, 94, 0.2);
+            border: 1px solid rgba(34, 197, 94, 0.3);
+        }
+        
+        .offline {
+            background: rgba(239, 68, 68, 0.2);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+        
+        @media (max-width: 480px) {
+            .container {
+                padding: 30px 20px;
+            }
+            
+            h1 {
+                font-size: 2rem;
+            }
+            
+            .icon {
+                width: 60px;
+                height: 60px;
+                font-size: 30px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="icon">🏌️</div>
+        <h1>Sin Conexión</h1>
+        <p>No hay conexión a internet disponible en este momento, pero TeeReserve sigue funcionando en modo offline.</p>
+        
+        <div class="features">
+            <h3>Funcionalidades Disponibles Offline</h3>
+            <ul class="feature-list">
+                <li>Ver reservas guardadas</li>
+                <li>Consultar información de campos</li>
+                <li>Acceder al perfil de usuario</li>
+                <li>Revisar historial de reservas</li>
+                <li>Crear reservas (se sincronizarán automáticamente)</li>
+            </ul>
+        </div>
+        
+        <button class="retry-btn" onclick="checkConnection()">
+            Verificar Conexión
+        </button>
+        
+        <button class="retry-btn" onclick="goHome()">
+            Ir al Inicio
+        </button>
+        
+        <div id="status" class="status offline">
+            Estado: Sin conexión a internet
+        </div>
+    </div>
+
+    <script>
+        function checkConnection() {
+            if (navigator.onLine) {
+                updateStatus(true);
+                // Intentar recargar la página después de un breve delay
+                setTimeout(() => {
+                    window.location.reload();
+                }, 1000);
+            } else {
+                updateStatus(false);
+                // Mostrar mensaje de que sigue sin conexión
+                showMessage('Aún no hay conexión disponible. Inténtalo de nuevo en unos momentos.');
+            }
+        }
+        
+        function goHome() {
+            window.location.href = '/';
+        }
+        
+        function updateStatus(isOnline) {
+            const statusEl = document.getElementById('status');
+            if (isOnline) {
+                statusEl.textContent = 'Estado: Conexión restaurada - Redirigiendo...';
+                statusEl.className = 'status online';
+            } else {
+                statusEl.textContent = 'Estado: Sin conexión a internet';
+                statusEl.className = 'status offline';
+            }
+        }
+        
+        function showMessage(message) {
+            // Crear elemento de mensaje temporal
+            const messageEl = document.createElement('div');
+            messageEl.textContent = message;
+            messageEl.style.cssText = `
+                position: fixed;
+                top: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: rgba(0, 0, 0, 0.8);
+                color: white;
+                padding: 15px 25px;
+                border-radius: 10px;
+                z-index: 1000;
+                font-size: 0.9rem;
+                max-width: 90%;
+                text-align: center;
+            `;
+            
+            document.body.appendChild(messageEl);
+            
+            // Remover después de 3 segundos
+            setTimeout(() => {
+                if (messageEl.parentNode) {
+                    messageEl.parentNode.removeChild(messageEl);
+                }
+            }, 3000);
+        }
+        
+        // Escuchar cambios en el estado de conexión
+        window.addEventListener('online', () => {
+            updateStatus(true);
+            showMessage('¡Conexión restaurada! Redirigiendo...');
+            setTimeout(() => {
+                window.location.reload();
+            }, 1500);
+        });
+        
+        window.addEventListener('offline', () => {
+            updateStatus(false);
+        });
+        
+        // Verificar estado inicial
+        updateStatus(navigator.onLine);
+        
+        // Auto-verificar conexión cada 30 segundos
+        setInterval(() => {
+            if (navigator.onLine) {
+                updateStatus(true);
+            }
+        }, 30000);
+    </script>
+</body>
+</html>
+

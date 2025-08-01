@@ -1,0 +1,323 @@
+{
+  "name": "TeeReserve - VIP Customer Management",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "vip-user",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-vip-user",
+      "name": "Webhook - VIP User",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "vip-user-webhook"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-1",
+              "leftValue": "={{ $json.data.totalReservations }}",
+              "rightValue": 5,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            },
+            {
+              "id": "condition-2",
+              "leftValue": "={{ $json.data.email }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "isNotEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "validate-vip-status",
+      "name": "Validate VIP Status",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "authentication": "headerAuth",
+        "requestMethod": "POST",
+        "url": "https://api.resend.com/emails",
+        "options": {
+          "headers": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Bearer {{ $env.RESEND_API_KEY }}"
+              }
+            ]
+          }
+        },
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"from\": \"TeeReserve Golf VIP <vip@teereserve.golf>\",\n  \"to\": [\"{{ $json.data.email }}\"],\n  \"subject\": \"🏆 ¡Bienvenido al Club VIP de TeeReserve Golf!\",\n  \"html\": \"<div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'><div style='background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%); color: white; padding: 40px; text-align: center;'><div style='background: rgba(255,255,255,0.1); border-radius: 50%; width: 80px; height: 80px; margin: 0 auto 20px auto; display: flex; align-items: center; justify-content: center;'><span style='font-size: 40px;'>🏆</span></div><h1 style='margin: 0; font-size: 32px;'>¡Felicidades!</h1><p style='margin: 10px 0 0 0; font-size: 20px; font-weight: bold;'>Ahora eres miembro VIP</p></div><div style='padding: 40px; background: #f9fafb;'><h2 style='color: #7c3aed; margin-top: 0; text-align: center;'>Estimado {{ $json.data.name }},</h2><p style='font-size: 18px; line-height: 1.6; color: #374151; text-align: center;'>Gracias a tu lealtad y {{ $json.data.totalReservations }} reservas completadas, ahora formas parte de nuestro exclusivo <strong>Club VIP TeeReserve Golf</strong>.</p><div style='background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%); border-radius: 12px; padding: 30px; margin: 30px 0; color: white; text-align: center;'><h3 style='margin: 0 0 20px 0; font-size: 24px;'>🌟 Beneficios VIP Exclusivos</h3><div style='display: grid; gap: 15px; text-align: left;'><div style='display: flex; align-items: center;'><span style='font-size: 20px; margin-right: 15px;'>💰</span><div><strong>15% de descuento permanente</strong><br><small>En todas tus reservas futuras</small></div></div><div style='display: flex; align-items: center;'><span style='font-size: 20px; margin-right: 15px;'>⚡</span><div><strong>Acceso prioritario</strong><br><small>Reserva antes que otros usuarios</small></div></div><div style='display: flex; align-items: center;'><span style='font-size: 20px; margin-right: 15px;'>🚗</span><div><strong>Carrito de golf gratuito</strong><br><small>En todas tus rondas</small></div></div><div style='display: flex; align-items: center;'><span style='font-size: 20px; margin-right: 15px;'>☕</span><div><strong>Bebidas de cortesía</strong><br><small>En el club house</small></div></div><div style='display: flex; align-items: center;'><span style='font-size: 20px; margin-right: 15px;'>🎁</span><div><strong>Regalos exclusivos</strong><br><small>Productos de golf premium</small></div></div><div style='display: flex; align-items: center;'><span style='font-size: 20px; margin-right: 15px;'>📞</span><div><strong>Soporte VIP 24/7</strong><br><small>Línea directa de atención</small></div></div></div></div><div style='background: white; border-radius: 8px; padding: 25px; margin: 25px 0; border: 2px solid #7c3aed; text-align: center;'><h3 style='color: #7c3aed; margin-top: 0;'>🎯 Tu Próxima Reserva VIP</h3><p style='color: #374151; margin-bottom: 20px;'>Usa tu descuento VIP en tu próxima reserva:</p><div style='background: #f3f4f6; border-radius: 6px; padding: 15px; margin: 15px 0;'><code style='font-size: 18px; font-weight: bold; color: #7c3aed;'>VIP{{ $json.data.userId.slice(-4).toUpperCase() }}</code></div><a href='https://teereserve.golf/courses?vip=true' style='background: #7c3aed; color: white; padding: 15px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;'>Explorar con Beneficios VIP</a></div><div style='background: #ede9fe; border-radius: 8px; padding: 20px; margin: 20px 0; border-left: 4px solid #7c3aed;'><h3 style='color: #5b21b6; margin-top: 0;'>📱 Contacto VIP Exclusivo</h3><p style='color: #5b21b6; margin-bottom: 0;'><strong>WhatsApp VIP:</strong> +52 624 135 2986<br><strong>Email VIP:</strong> vip@teereserve.golf<br><strong>Horario:</strong> 24/7 para miembros VIP</p></div><p style='color: #6b7280; font-size: 14px; text-align: center;'>Tu estatus VIP es permanente mientras mantengas actividad en tu cuenta.</p></div><div style='background: #374151; color: #9ca3af; padding: 30px; text-align: center;'><h3 style='color: #fbbf24; margin-top: 0;'>🏌️‍♂️ TeeReserve Golf VIP Club</h3><p style='font-size: 12px; margin-bottom: 0;'>© 2025 TeeReserve Golf. Todos los derechos reservados.<br>Los Cabos, Baja California Sur, México</p></div></div>\"\n}"
+      },
+      "id": "send-vip-welcome-email",
+      "name": "Send VIP Welcome Email",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 200]
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "={{ $env.TEERESERVE_API_URL }}/api/n8n/webhook",
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"action\": \"update_user_status\",\n  \"data\": {\n    \"userId\": \"{{ $json.data.userId }}\",\n    \"status\": \"vip_member\",\n    \"metadata\": {\n      \"vipSince\": \"{{ $now.toISO() }}\",\n      \"totalReservations\": {{ $json.data.totalReservations }},\n      \"vipTier\": \"gold\",\n      \"discountPercentage\": 15,\n      \"benefits\": [\n        \"priority_booking\",\n        \"free_cart\",\n        \"complimentary_drinks\",\n        \"vip_support\",\n        \"exclusive_offers\"\n      ]\n    }\n  }\n}"
+      },
+      "id": "update-vip-status",
+      "name": "Update VIP Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "amount": 7,
+        "unit": "days"
+      },
+      "id": "wait-7-days",
+      "name": "Wait 7 Days",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [900, 250]
+    },
+    {
+      "parameters": {
+        "authentication": "headerAuth",
+        "requestMethod": "POST",
+        "url": "https://api.resend.com/emails",
+        "options": {
+          "headers": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Bearer {{ $env.RESEND_API_KEY }}"
+              }
+            ]
+          }
+        },
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"from\": \"TeeReserve Golf VIP <vip@teereserve.golf>\",\n  \"to\": [\"{{ $json.data.email }}\"],\n  \"subject\": \"🎁 Regalo VIP especial + Invitación a torneo exclusivo\",\n  \"html\": \"<div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'><div style='background: linear-gradient(135deg, #059669 0%, #047857 100%); color: white; padding: 30px; text-align: center;'><h1 style='margin: 0; font-size: 28px;'>🎁 Regalo VIP Especial</h1><p style='margin: 10px 0 0 0; font-size: 18px;'>Para nuestro miembro VIP {{ $json.data.name }}</p></div><div style='padding: 30px; background: #f9fafb;'><h2 style='color: #059669; margin-top: 0;'>¡Hola {{ $json.data.name }}!</h2><p style='font-size: 16px; line-height: 1.6; color: #374151;'>Como agradecimiento por ser parte de nuestro Club VIP, tenemos dos sorpresas especiales para ti:</p><div style='background: white; border-radius: 12px; padding: 25px; margin: 25px 0; border: 2px solid #fbbf24; box-shadow: 0 4px 6px rgba(0,0,0,0.1);'><h3 style='color: #f59e0b; margin-top: 0; text-align: center;'>🎁 REGALO VIP #1</h3><div style='text-align: center; margin: 20px 0;'><div style='background: #fef3c7; border-radius: 50%; width: 80px; height: 80px; margin: 0 auto 15px auto; display: flex; align-items: center; justify-content: center;'><span style='font-size: 35px;'>🏌️</span></div><h4 style='color: #059669; margin: 0;'>Kit de Golf Premium</h4><p style='color: #374151; margin: 10px 0;'>Incluye: Toalla personalizada, marcadores de bola, tees premium y guante de golf</p><p style='color: #f59e0b; font-weight: bold; margin: 0;'>Valor: $75 USD - ¡GRATIS para ti!</p></div></div><div style='background: white; border-radius: 12px; padding: 25px; margin: 25px 0; border: 2px solid #7c3aed; box-shadow: 0 4px 6px rgba(0,0,0,0.1);'><h3 style='color: #7c3aed; margin-top: 0; text-align: center;'>🏆 INVITACIÓN EXCLUSIVA</h3><div style='text-align: center; margin: 20px 0;'><div style='background: #ede9fe; border-radius: 50%; width: 80px; height: 80px; margin: 0 auto 15px auto; display: flex; align-items: center; justify-content: center;'><span style='font-size: 35px;'>🏆</span></div><h4 style='color: #7c3aed; margin: 0;'>Torneo VIP Mensual</h4><p style='color: #374151; margin: 10px 0;'>Próximo evento: 15 de Febrero 2025<br>Cabo Real Golf Club - Formato Scramble</p><div style='background: #f3f4f6; border-radius: 6px; padding: 15px; margin: 15px 0;'><p style='color: #374151; margin: 0; font-size: 14px;'><strong>Incluye:</strong> Green fees, carrito, almuerzo, premios y networking con otros VIPs</p></div><p style='color: #7c3aed; font-weight: bold; margin: 0;'>¡Solo para miembros VIP!</p></div></div><div style='text-align: center; margin: 30px 0;'><a href='https://teereserve.golf/vip/tournament-registration' style='background: #059669; color: white; padding: 15px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; margin-right: 10px;'>Registrarme al Torneo</a><a href='https://teereserve.golf/vip/claim-gift' style='background: #f59e0b; color: white; padding: 15px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;'>Reclamar Mi Regalo</a></div><p style='color: #6b7280; font-size: 14px; text-align: center;'>¿Preguntas sobre tus beneficios VIP? Contáctanos en vip@teereserve.golf</p></div></div>\"\n}"
+      },
+      "id": "send-vip-gift-invitation",
+      "name": "Send VIP Gift & Invitation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 250]
+    },
+    {
+      "parameters": {
+        "amount": 30,
+        "unit": "days"
+      },
+      "id": "wait-30-days",
+      "name": "Wait 30 Days",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [1340, 250]
+    },
+    {
+      "parameters": {
+        "authentication": "headerAuth",
+        "requestMethod": "POST",
+        "url": "https://api.resend.com/emails",
+        "options": {
+          "headers": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Bearer {{ $env.RESEND_API_KEY }}"
+              }
+            ]
+          }
+        },
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"from\": \"TeeReserve Golf VIP <vip@teereserve.golf>\",\n  \"to\": [\"{{ $json.data.email }}\"],\n  \"subject\": \"🌟 Reporte mensual VIP + Ofertas exclusivas\",\n  \"html\": \"<div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'><div style='background: linear-gradient(135deg, #7c3aed 0%, #5b21b6 100%); color: white; padding: 30px; text-align: center;'><h1 style='margin: 0; font-size: 28px;'>🌟 Reporte VIP Mensual</h1><p style='margin: 10px 0 0 0; font-size: 18px;'>Tu actividad como miembro VIP</p></div><div style='padding: 30px; background: #f9fafb;'><h2 style='color: #7c3aed; margin-top: 0;'>Hola {{ $json.data.name }},</h2><p style='font-size: 16px; line-height: 1.6; color: #374151;'>Aquí tienes tu reporte mensual como miembro VIP y algunas ofertas exclusivas.</p><div style='background: white; border-radius: 8px; padding: 20px; margin: 20px 0; border-left: 4px solid #7c3aed;'><h3 style='color: #7c3aed; margin-top: 0;'>📊 Tu Actividad VIP</h3><div style='display: grid; gap: 10px;'><div style='display: flex; justify-content: space-between;'><span style='color: #374151;'>Reservas este mes:</span><strong style='color: #7c3aed;'>{{ $json.data.monthlyReservations || 'N/A' }}</strong></div><div style='display: flex; justify-content: space-between;'><span style='color: #374151;'>Ahorro total VIP:</span><strong style='color: #059669;'>${{ ($json.data.totalSavings || 0) }} USD</strong></div><div style='display: flex; justify-content: space-between;'><span style='color: #374151;'>Campos favoritos:</span><strong style='color: #7c3aed;'>{{ ($json.data.favoriteFields || []).slice(0,2).join(', ') }}</strong></div></div></div><div style='background: #fef3c7; border-radius: 8px; padding: 20px; margin: 20px 0; border-left: 4px solid #f59e0b;'><h3 style='color: #92400e; margin-top: 0;'>🔥 Ofertas VIP Exclusivas</h3><ul style='color: #92400e; line-height: 1.8; margin-bottom: 0;'><li><strong>Weekend Premium:</strong> 20% extra OFF en fines de semana</li><li><strong>Bring a Friend:</strong> Tu invitado juega con 50% descuento</li><li><strong>Early Bird:</strong> Reservas antes de 7am con 25% OFF</li></ul></div><div style='text-align: center; margin: 30px 0;'><a href='https://teereserve.golf/vip/exclusive-offers' style='background: #7c3aed; color: white; padding: 15px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;'>Ver Ofertas VIP</a></div></div></div>\"\n}"
+      },
+      "id": "send-monthly-vip-report",
+      "name": "Send Monthly VIP Report",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1560, 250]
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "={{ $env.TEERESERVE_API_URL }}/api/n8n/webhook",
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"action\": \"log_automation_event\",\n  \"data\": {\n    \"eventType\": \"vip_sequence_completed\",\n    \"userId\": \"{{ $json.data.userId }}\",\n    \"workflowId\": \"vip-customer-management\",\n    \"details\": {\n      \"vipSince\": \"{{ $now.toISO() }}\",\n      \"totalReservations\": {{ $json.data.totalReservations }},\n      \"emailsSent\": 3,\n      \"sequenceType\": \"vip_onboarding\"\n    }\n  }\n}"
+      },
+      "id": "log-vip-sequence-completion",
+      "name": "Log VIP Sequence Completion",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1780, 250]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "VIP customer management sequence initiated successfully"
+      },
+      "id": "webhook-response",
+      "name": "Webhook Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [680, 450]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "User does not meet VIP criteria"
+      },
+      "id": "error-response",
+      "name": "Error Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [680, 550]
+    }
+  ],
+  "connections": {
+    "Webhook - VIP User": {
+      "main": [
+        [
+          {
+            "node": "Validate VIP Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate VIP Status": {
+      "main": [
+        [
+          {
+            "node": "Send VIP Welcome Email",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Update VIP Status",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send VIP Welcome Email": {
+      "main": [
+        [
+          {
+            "node": "Wait 7 Days",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Update VIP Status": {
+      "main": [
+        [
+          {
+            "node": "Wait 7 Days",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 7 Days": {
+      "main": [
+        [
+          {
+            "node": "Send VIP Gift & Invitation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send VIP Gift & Invitation": {
+      "main": [
+        [
+          {
+            "node": "Wait 30 Days",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 30 Days": {
+      "main": [
+        [
+          {
+            "node": "Send Monthly VIP Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Monthly VIP Report": {
+      "main": [
+        [
+          {
+            "node": "Log VIP Sequence Completion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2025-01-22T21:45:00.000Z",
+      "updatedAt": "2025-01-22T21:45:00.000Z",
+      "id": "teereserve-vip",
+      "name": "TeeReserve VIP"
+    }
+  ],
+  "triggerCount": 0,
+  "updatedAt": "2025-01-22T21:45:00.000Z",
+  "versionId": "1"
+}
+

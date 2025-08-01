@@ -1,0 +1,29 @@
+<svg width="200" height="200" viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <pattern id="golfPattern" x="0" y="0" width="100" height="100" patternUnits="userSpaceOnUse">
+      <!-- Golf Ball Pattern -->
+      <circle cx="20" cy="20" r="3" fill="currentColor" opacity="0.1"/>
+      <circle cx="18" cy="18" r="0.5" fill="currentColor" opacity="0.1"/>
+      <circle cx="22" cy="18" r="0.5" fill="currentColor" opacity="0.1"/>
+      <circle cx="20" cy="22" r="0.5" fill="currentColor" opacity="0.1"/>
+
+      <!-- Golf Flag Pattern -->
+      <rect x="70" y="65" width="1" height="10" fill="currentColor" opacity="0.08"/>
+      <path d="M71 65L76 67.5L71 70Z" fill="currentColor" opacity="0.08"/>
+
+      <!-- Golf Tee Pattern -->
+      <circle cx="40" cy="70" r="1" fill="currentColor" opacity="0.06"/>
+      <rect x="39.5" y="71" width="1" height="4" fill="currentColor" opacity="0.06"/>
+
+      <!-- Golf Club Pattern -->
+      <rect x="75" y="25" width="1" height="15" fill="currentColor" opacity="0.05"/>
+      <ellipse cx="75.5" cy="40" rx="2" ry="1" fill="currentColor" opacity="0.05"/>
+
+      <!-- Subtle Golf Course Elements -->
+      <path d="M10 80C15 82 20 80 25 82" stroke="currentColor" stroke-width="0.5" opacity="0.04" fill="none"/>
+      <path d="M60 30C65 32 70 30 75 32" stroke="currentColor" stroke-width="0.5" opacity="0.04" fill="none"/>
+    </pattern>
+  </defs>
+
+  <rect width="200" height="200" fill="url(#golfPattern)"/>
+</svg>

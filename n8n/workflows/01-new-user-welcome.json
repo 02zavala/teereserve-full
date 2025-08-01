@@ -1,0 +1,285 @@
+{
+  "name": "TeeReserve - New User Welcome Sequence",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "new-user",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-new-user",
+      "name": "Webhook - New User",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [240, 300],
+      "webhookId": "new-user-webhook"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "condition-1",
+              "leftValue": "={{ $json.data.email }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "isNotEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "validate-user-data",
+      "name": "Validate User Data",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "authentication": "headerAuth",
+        "requestMethod": "POST",
+        "url": "https://api.resend.com/emails",
+        "options": {
+          "headers": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Bearer {{ $env.RESEND_API_KEY }}"
+              }
+            ]
+          }
+        },
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"from\": \"TeeReserve Golf <welcome@teereserve.golf>\",\n  \"to\": [\"{{ $json.data.email }}\"],\n  \"subject\": \"¡Bienvenido a TeeReserve Golf! 🏌️‍♂️\",\n  \"html\": \"<div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'><div style='background: linear-gradient(135deg, #059669 0%, #047857 100%); color: white; padding: 30px; text-align: center;'><h1 style='margin: 0; font-size: 28px;'>¡Bienvenido a TeeReserve Golf!</h1><p style='margin: 10px 0 0 0; font-size: 18px;'>Tu plataforma premium de golf en México</p></div><div style='padding: 30px; background: #f9fafb;'><h2 style='color: #059669; margin-top: 0;'>Hola {{ $json.data.name }},</h2><p style='font-size: 16px; line-height: 1.6; color: #374151;'>¡Estamos emocionados de tenerte en TeeReserve Golf! Ahora tienes acceso a los mejores campos de golf de México.</p><div style='background: white; border-radius: 8px; padding: 20px; margin: 20px 0; border-left: 4px solid #059669;'><h3 style='color: #059669; margin-top: 0;'>¿Qué puedes hacer ahora?</h3><ul style='color: #374151; line-height: 1.8;'><li>🏌️ Explorar más de 50 campos premium</li><li>📅 Reservar tu tee time perfecto</li><li>💳 Pagos seguros con Stripe</li><li>📱 Recibir confirmaciones por WhatsApp</li><li>🤖 Obtener recomendaciones personalizadas con IA</li></ul></div><div style='text-align: center; margin: 30px 0;'><a href='https://teereserve.golf/courses' style='background: #059669; color: white; padding: 15px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;'>Explorar Campos de Golf</a></div><p style='color: #6b7280; font-size: 14px; text-align: center;'>¿Necesitas ayuda? Contáctanos en <a href='mailto:info@teereserve.golf' style='color: #059669;'>info@teereserve.golf</a></p></div><div style='background: #374151; color: #9ca3af; padding: 20px; text-align: center; font-size: 12px;'><p>© 2025 TeeReserve Golf. Todos los derechos reservados.</p><p>Los Cabos, Baja California Sur, México</p></div></div>\"\n}"
+      },
+      "id": "send-welcome-email",
+      "name": "Send Welcome Email",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 200]
+    },
+    {
+      "parameters": {
+        "amount": 2,
+        "unit": "minutes"
+      },
+      "id": "wait-2-minutes",
+      "name": "Wait 2 Minutes",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [900, 200]
+    },
+    {
+      "parameters": {
+        "authentication": "headerAuth",
+        "requestMethod": "POST",
+        "url": "https://api.resend.com/emails",
+        "options": {
+          "headers": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Bearer {{ $env.RESEND_API_KEY }}"
+              }
+            ]
+          }
+        },
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"from\": \"TeeReserve Golf <tips@teereserve.golf>\",\n  \"to\": [\"{{ $json.data.email }}\"],\n  \"subject\": \"🏌️ Consejos para tu primera reserva en TeeReserve\",\n  \"html\": \"<div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'><div style='background: linear-gradient(135deg, #0f766e 0%, #059669 100%); color: white; padding: 30px; text-align: center;'><h1 style='margin: 0; font-size: 24px;'>Consejos para tu Primera Reserva 🏌️</h1></div><div style='padding: 30px; background: #f9fafb;'><h2 style='color: #059669; margin-top: 0;'>Hola {{ $json.data.name }},</h2><p style='font-size: 16px; line-height: 1.6; color: #374151;'>Aquí tienes algunos consejos para aprovechar al máximo TeeReserve Golf:</p><div style='background: white; border-radius: 8px; padding: 20px; margin: 20px 0;'><h3 style='color: #059669; margin-top: 0;'>💡 Consejos Expertos</h3><ul style='color: #374151; line-height: 1.8;'><li><strong>Reserva con anticipación:</strong> Los mejores horarios se agotan rápido</li><li><strong>Revisa el clima:</strong> Cada campo tiene widget del clima integrado</li><li><strong>Usa las recomendaciones IA:</strong> Te sugerimos campos según tus preferencias</li><li><strong>Aprovecha las ofertas:</strong> Suscríbete a notificaciones para ofertas especiales</li></ul></div><div style='background: #fef3c7; border-radius: 8px; padding: 20px; margin: 20px 0; border-left: 4px solid #f59e0b;'><h3 style='color: #92400e; margin-top: 0;'>🎯 Campos Recomendados para Principiantes</h3><p style='color: #92400e; margin-bottom: 0;'>• Cabo Real Golf Club - Perfecto para empezar<br>• Solmar Golf Links - Vistas espectaculares<br>• Cabo del Sol - Experiencia premium</p></div><div style='text-align: center; margin: 30px 0;'><a href='https://teereserve.golf/recommendations' style='background: #059669; color: white; padding: 15px 30px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block;'>Ver Recomendaciones IA</a></div></div></div>\"\n}"
+      },
+      "id": "send-tips-email",
+      "name": "Send Tips Email",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 200]
+    },
+    {
+      "parameters": {
+        "amount": 1,
+        "unit": "days"
+      },
+      "id": "wait-1-day",
+      "name": "Wait 1 Day",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1,
+      "position": [1340, 200]
+    },
+    {
+      "parameters": {
+        "authentication": "headerAuth",
+        "requestMethod": "POST",
+        "url": "https://api.resend.com/emails",
+        "options": {
+          "headers": {
+            "parameters": [
+              {
+                "name": "Authorization",
+                "value": "Bearer {{ $env.RESEND_API_KEY }}"
+              }
+            ]
+          }
+        },
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"from\": \"TeeReserve Golf <offers@teereserve.golf>\",\n  \"to\": [\"{{ $json.data.email }}\"],\n  \"subject\": \"🎁 Oferta especial de bienvenida - 15% de descuento\",\n  \"html\": \"<div style='font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;'><div style='background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%); color: white; padding: 30px; text-align: center;'><h1 style='margin: 0; font-size: 28px;'>🎁 Oferta Especial de Bienvenida</h1><p style='margin: 10px 0 0 0; font-size: 20px; font-weight: bold;'>15% de Descuento en tu Primera Reserva</p></div><div style='padding: 30px; background: #f9fafb;'><h2 style='color: #dc2626; margin-top: 0;'>¡{{ $json.data.name }}, esta oferta es solo para ti!</h2><p style='font-size: 16px; line-height: 1.6; color: #374151;'>Como nuevo miembro de TeeReserve Golf, queremos darte la bienvenida con un descuento especial.</p><div style='background: #fee2e2; border-radius: 8px; padding: 25px; margin: 25px 0; text-align: center; border: 2px dashed #dc2626;'><h3 style='color: #dc2626; margin: 0 0 10px 0; font-size: 24px;'>CÓDIGO: BIENVENIDO15</h3><p style='color: #dc2626; font-size: 18px; font-weight: bold; margin: 0;'>Válido por 7 días • Mínimo $100 USD</p></div><div style='text-align: center; margin: 30px 0;'><a href='https://teereserve.golf/courses' style='background: #dc2626; color: white; padding: 18px 35px; text-decoration: none; border-radius: 6px; font-weight: bold; display: inline-block; font-size: 16px;'>Usar Mi Descuento Ahora</a></div><p style='color: #6b7280; font-size: 14px; text-align: center;'>*Oferta válida hasta {{ $now.plus({days: 7}).toFormat('dd/MM/yyyy') }}. No acumulable con otras promociones.</p></div></div>\"\n}"
+      },
+      "id": "send-welcome-offer",
+      "name": "Send Welcome Offer",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1560, 200]
+    },
+    {
+      "parameters": {
+        "requestMethod": "POST",
+        "url": "={{ $env.TEERESERVE_API_URL }}/api/n8n/webhook",
+        "jsonParameters": true,
+        "bodyParametersJson": "={\n  \"action\": \"log_automation_event\",\n  \"data\": {\n    \"eventType\": \"welcome_sequence_completed\",\n    \"userId\": \"{{ $json.data.userId }}\",\n    \"workflowId\": \"new-user-welcome\",\n    \"details\": {\n      \"email\": \"{{ $json.data.email }}\",\n      \"completedAt\": \"{{ $now.toISO() }}\",\n      \"emailsSent\": 3\n    }\n  }\n}"
+      },
+      "id": "log-completion",
+      "name": "Log Completion",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1780, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "Welcome sequence initiated successfully"
+      },
+      "id": "webhook-response",
+      "name": "Webhook Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [680, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "Invalid user data provided"
+      },
+      "id": "error-response",
+      "name": "Error Response",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [680, 500]
+    }
+  ],
+  "connections": {
+    "Webhook - New User": {
+      "main": [
+        [
+          {
+            "node": "Validate User Data",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate User Data": {
+      "main": [
+        [
+          {
+            "node": "Send Welcome Email",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Webhook Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Error Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Welcome Email": {
+      "main": [
+        [
+          {
+            "node": "Wait 2 Minutes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 2 Minutes": {
+      "main": [
+        [
+          {
+            "node": "Send Tips Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Tips Email": {
+      "main": [
+        [
+          {
+            "node": "Wait 1 Day",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait 1 Day": {
+      "main": [
+        [
+          {
+            "node": "Send Welcome Offer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Welcome Offer": {
+      "main": [
+        [
+          {
+            "node": "Log Completion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "createdAt": "2025-01-22T21:30:00.000Z",
+      "updatedAt": "2025-01-22T21:30:00.000Z",
+      "id": "teereserve-marketing",
+      "name": "TeeReserve Marketing"
+    }
+  ],
+  "triggerCount": 0,
+  "updatedAt": "2025-01-22T21:30:00.000Z",
+  "versionId": "1"
+}
+

@@ -7,8 +7,8 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "prisma generate && next build",
-    "postinstall": "prisma generate",
+    "build": "prisma generate --no-engine && next build",
+    "postinstall": "prisma generate --no-engine",
     "start": "next start",
     "lint": "next lint",
     "type-check": "tsc --noEmit"
@@ -105,3 +105,5 @@
     "typescript": "^5.8.3"
   }
 }
+
+
